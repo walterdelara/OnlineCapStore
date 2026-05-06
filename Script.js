@@ -52,7 +52,7 @@ const app = (() => {
         Bone: "Images/CanvasCapBone.webp",
         Navy: "Images/CanvasCapNavy.webp",
       },
-      desc: "Heavy-duty cotton canvas. Unstructured crown and an adjustable fabric strap.",
+      desc: "Heavy-duty cotton canvas. Features an unstructured crown, custom hardware, and an adjustable fabric strap for the perfect fit.",
     },
     {
       id: 2,
@@ -64,7 +64,7 @@ const app = (() => {
         Heather: "Images/RibbedBeanieHeather.webp",
         Charcoal: "Images/RibbedBeanieCharcoal.webp",
       },
-      desc: "Balances warmth and breathability. Woven from a premium wool blend.",
+      desc: "Balances warmth and breathability perfectly. Woven from a premium wool blend to retain shape while keeping you comfortable.",
     },
     {
       id: 3,
@@ -76,7 +76,7 @@ const app = (() => {
         Crimson: "Images/SnapbackCrimson.webp",
         Royal: "Images/SnapbackRoyal.webp",
       },
-      desc: "Structured front panels, flat brim, and a classic plastic snap closure.",
+      desc: "A bold nod to the 90s aesthetic. Structured front panels, a flat brim, and a classic plastic snap closure.",
     },
     {
       id: 4,
@@ -88,7 +88,7 @@ const app = (() => {
         Olive: "Images/UtilityBucketOlive.webp",
         Khaki: "Images/UtilityBucketKhaki.webp",
       },
-      desc: "Built for the outdoors. Features a downward sloping brim and tonal stitching.",
+      desc: "Built for the outdoors but styled for the city. Features a downward sloping brim and reinforced tonal stitching.",
     },
     {
       id: 5,
@@ -100,7 +100,7 @@ const app = (() => {
         "Faded Black": "Images/DadHatFadedBlack.webp",
         Mustard: "Images/DadHatMustard.webp",
       },
-      desc: "Pre-washed for that perfect vintage feel. Low profile and curved brim.",
+      desc: "Pre-washed for that perfect vintage feel right out of the box. Low profile design with a curved brim.",
     },
     {
       id: 6,
@@ -112,7 +112,7 @@ const app = (() => {
         White: "Images/RunningCapWhite.webp",
         Neon: "Images/RunningCapNeon.webp",
       },
-      desc: "Ultra-lightweight and breathable. Perfect for high-intensity activities.",
+      desc: "Ultra-lightweight, moisture-wicking, and incredibly breathable. Designed specifically for high-intensity activities.",
     },
   ];
 
@@ -126,9 +126,15 @@ const app = (() => {
   let currentSelectedColor = null;
   let currentModalQty = 1;
   let currentCategory = "All Drops";
+  let sortOrder = "default";
+
+  // Bypass cart directly via Buy Now flag
+  let isDirectCheckout = false;
+  let directBuyItem = null;
 
   // User & Auth State
   let currentUser = JSON.parse(localStorage.getItem("dropout_user")) || null;
+  if (currentUser && !currentUser.addresses) currentUser.addresses = [];
   let users = JSON.parse(localStorage.getItem("dropout_users")) || [];
 
   // --- DOM Elements ---
@@ -166,6 +172,7 @@ const app = (() => {
     checkoutItems: document.getElementById("checkout-items"),
     checkoutTotal: document.getElementById("checkout-total"),
     navItems: document.querySelectorAll(".nav-item"),
+    desktopNavItems: document.querySelectorAll(".desktop-nav-item"),
     categoryBtns: document.querySelectorAll(".category-btn"),
     searchOverlay: document.getElementById("search-overlay"),
     searchInput: document.getElementById("search-input"),
@@ -173,20 +180,48 @@ const app = (() => {
     searchEmpty: document.getElementById("search-empty"),
     wishlistGrid: document.getElementById("wishlist-grid"),
     recentGrid: document.getElementById("recent-grid"),
+    addressList: document.getElementById("address-list-container"),
+    addressModal: {
+      wrap: document.getElementById("address-modal"),
+      bg: document.getElementById("address-modal-bg"),
+      content: document.getElementById("address-modal-content"),
+      form: document.getElementById("address-form"),
+      title: document.getElementById("address-modal-title"),
+    },
+    filterModal: {
+      wrap: document.getElementById("filter-modal"),
+      bg: document.getElementById("filter-modal-bg"),
+      content: document.getElementById("filter-modal-content"),
+    },
     modal: {
       wrap: document.getElementById("product-modal"),
       bg: document.getElementById("modal-bg"),
       content: document.getElementById("modal-content"),
       img: document.getElementById("modal-img"),
       title: document.getElementById("modal-title"),
+      category: document.getElementById("modal-category"),
       price: document.getElementById("modal-price"),
       desc: document.getElementById("modal-desc"),
       colors: document.getElementById("modal-colors"),
       colorLabel: document.getElementById("color-label"),
       qty: document.getElementById("modal-qty"),
       addBtn: document.getElementById("modal-add-btn"),
+      buyBtn: document.getElementById("modal-buy-btn"),
     },
   };
+
+  // Hero Slider Logic
+  let currentSlide = 1;
+  const rotateHero = () => {
+    const totalSlides = 3;
+    const prevSlide = document.getElementById(`hero-bg-${currentSlide}`);
+    if (prevSlide) prevSlide.classList.replace("opacity-100", "opacity-0");
+
+    currentSlide = currentSlide >= totalSlides ? 1 : currentSlide + 1;
+    const nextSlide = document.getElementById(`hero-bg-${currentSlide}`);
+    if (nextSlide) nextSlide.classList.replace("opacity-0", "opacity-100");
+  };
+  setInterval(rotateHero, 4000);
 
   // --- Initialization ---
   const init = () => {
@@ -194,7 +229,6 @@ const app = (() => {
     updateCartUI();
     updateProfileUI();
 
-    // Simulate App Load
     setTimeout(() => {
       els.splash.style.opacity = "0";
       setTimeout(() => {
@@ -213,7 +247,13 @@ const app = (() => {
       viewName = currentUser ? "profileDashboard" : "auth";
     }
 
-    const customHeaderViews = [
+    if (viewName !== "checkout" && viewName !== "confirmation") {
+      isDirectCheckout = false;
+      directBuyItem = null;
+    }
+
+    const hideMainHeaderViews = ["checkout", "confirmation"];
+    const desktopNoMainHeaderViews = [
       "settings",
       "settingsAccount",
       "settingsAddress",
@@ -228,18 +268,29 @@ const app = (() => {
       "confirmation",
     ];
 
-    if (viewName === "profileDashboard") {
-      els.mainHeader.classList.add("hidden");
-      els.profileHeader.classList.remove("hidden");
-    } else if (customHeaderViews.includes(viewName)) {
-      els.mainHeader.classList.add("hidden");
-      els.profileHeader.classList.add("hidden");
+    // Desktop & Mobile Main Header Visibility
+    if (hideMainHeaderViews.includes(viewName)) {
+      els.mainHeader.className =
+        "fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-50 transition-opacity duration-300 hidden items-center h-14 sm:h-20";
+    } else if (
+      desktopNoMainHeaderViews.includes(viewName) ||
+      viewName === "profileDashboard"
+    ) {
+      els.mainHeader.className =
+        "fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-50 transition-opacity duration-300 hidden md:flex items-center h-14 sm:h-20";
     } else {
-      els.mainHeader.classList.remove("hidden");
+      els.mainHeader.className =
+        "fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-50 transition-opacity duration-300 flex items-center h-14 sm:h-20";
+    }
+
+    // Profile Mobile Header Logic
+    if (viewName === "profileDashboard") {
+      els.profileHeader.classList.remove("hidden");
+    } else {
       els.profileHeader.classList.add("hidden");
     }
 
-    // Render dynamic views appropriately prior to displaying
+    // Render dynamic view data
     if (viewName === "wishlist") renderWishlist();
     if (viewName === "recent") renderRecent();
     if (viewName === "settingsAccount" && currentUser) {
@@ -247,6 +298,7 @@ const app = (() => {
       document.getElementById("acct-email").value = currentUser.email || "";
       document.getElementById("acct-phone").value = currentUser.phone || "";
     }
+    if (viewName === "settingsAddress") renderAddresses();
 
     Object.values(els.views).forEach((view) => {
       if (view) view.classList.add("hidden");
@@ -257,13 +309,7 @@ const app = (() => {
     }
     window.scrollTo(0, 0);
 
-    els.navItems.forEach((item) => {
-      item.classList.remove("active", "text-brand");
-      if (!item.classList.contains("text-gray-400")) {
-        item.classList.add("text-gray-400");
-      }
-    });
-
+    // Update Active Navs
     let navBtnTarget = viewName;
     if (
       [
@@ -283,27 +329,46 @@ const app = (() => {
       navBtnTarget = "profile";
     }
 
-    const activeNavBtn = document.querySelector(
-      `.nav-item[data-nav="${navBtnTarget}"]`,
-    );
-    if (activeNavBtn) {
-      activeNavBtn.classList.add("active", "text-brand");
-      activeNavBtn.classList.remove("text-gray-400");
-    }
+    // Mobile Nav
+    els.navItems.forEach((item) => {
+      item.classList.remove("active", "text-brand");
+      if (!item.classList.contains("text-gray-400"))
+        item.classList.add("text-gray-400");
+      if (item.dataset.nav === navBtnTarget) {
+        item.classList.add("active", "text-brand");
+        item.classList.remove("text-gray-400");
+      }
+    });
+
+    // Desktop Nav
+    els.desktopNavItems.forEach((item) => {
+      item.classList.remove("active");
+      if (item.dataset.nav === navBtnTarget) {
+        item.classList.add("active");
+      }
+    });
   };
 
   // --- Auth & Account Logic ---
   const updateProfileUI = () => {
     if (currentUser) {
+      const nameParts = currentUser.name.split(" ");
       document.getElementById("profile-name").innerText = currentUser.name;
       document.getElementById("profile-email").innerText = currentUser.email;
-      document.getElementById("profile-initial").innerText = currentUser.name
-        .charAt(0)
-        .toUpperCase();
+      document.getElementById("profile-initial").innerText =
+        nameParts[0].charAt(0).toUpperCase() +
+        (nameParts[1] ? nameParts[1].charAt(0).toUpperCase() : "");
 
       const settingsEmailEl = document.getElementById("settings-email");
       if (settingsEmailEl) settingsEmailEl.innerText = currentUser.email;
     }
+  };
+
+  const saveCurrentUser = () => {
+    localStorage.setItem("dropout_user", JSON.stringify(currentUser));
+    const idx = users.findIndex((u) => u.email === currentUser.email);
+    if (idx > -1) users[idx] = currentUser;
+    localStorage.setItem("dropout_users", JSON.stringify(users));
   };
 
   const handleRegister = (e) => {
@@ -319,12 +384,12 @@ const app = (() => {
     }
 
     errorEl.classList.add("hidden");
-    const newUser = { name, email, password, phone: "" };
+    const newUser = { name, email, password, phone: "", addresses: [] };
     users.push(newUser);
     localStorage.setItem("dropout_users", JSON.stringify(users));
 
     currentUser = newUser;
-    localStorage.setItem("dropout_user", JSON.stringify(currentUser));
+    saveCurrentUser();
     updateProfileUI();
 
     e.target.reset();
@@ -343,8 +408,9 @@ const app = (() => {
 
     if (user) {
       errorEl.classList.add("hidden");
+      if (!user.addresses) user.addresses = []; // migration safety
       currentUser = user;
-      localStorage.setItem("dropout_user", JSON.stringify(currentUser));
+      saveCurrentUser();
       updateProfileUI();
       e.target.reset();
       navigate("profile");
@@ -358,14 +424,9 @@ const app = (() => {
     const newPhone = document.getElementById("acct-phone").value;
     if (newName) currentUser.name = newName;
     currentUser.phone = newPhone;
-    localStorage.setItem("dropout_user", JSON.stringify(currentUser));
-
-    const idx = users.findIndex((u) => u.email === currentUser.email);
-    if (idx > -1) users[idx] = currentUser;
-    localStorage.setItem("dropout_users", JSON.stringify(users));
+    saveCurrentUser();
 
     updateProfileUI();
-    navigate("settings");
   };
 
   const handleLogout = () => {
@@ -375,10 +436,162 @@ const app = (() => {
   };
 
   const updateSetting = (key, val) => {
-    if (key === "currency")
+    if (key === "currency") {
       document.getElementById("display-currency").innerText = val;
-    if (key === "language")
+    }
+    if (key === "language") {
       document.getElementById("display-language").innerText = val;
+    }
+  };
+
+  // --- Address Book Logic ---
+  const renderAddresses = () => {
+    if (!currentUser) return;
+    const container = els.addressList;
+    if (!currentUser.addresses || currentUser.addresses.length === 0) {
+      container.innerHTML = `
+                        <div class="text-center py-10 bg-white rounded-3xl border border-gray-50 shadow-sm">
+                            <i class="las la-map-marker-alt text-5xl text-gray-300 mb-2"></i>
+                            <p class="text-gray-500 font-bold text-sm">No addresses saved yet.</p>
+                        </div>
+                    `;
+      return;
+    }
+
+    container.innerHTML = currentUser.addresses
+      .map(
+        (addr) => `
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border ${addr.isDefault ? "border-brand" : "border-gray-50 hover:border-gray-200 transition-colors"} relative overflow-hidden">
+                        ${addr.isDefault ? '<div class="absolute top-0 right-0 bg-brand text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">DEFAULT</div>' : ""}
+                        <h3 class="font-black text-gray-900 mb-1 text-lg">${addr.title}</h3>
+                        <p class="text-sm font-bold text-gray-800 mb-1">${addr.name}</p>
+                        <p class="text-sm font-medium text-gray-500 leading-relaxed mb-2">${addr.detail}</p>
+                        <p class="text-sm font-medium text-gray-500"><i class="las la-phone mr-1"></i> ${addr.phone}</p>
+                        <div class="mt-5 flex gap-5 border-t border-gray-50 pt-4">
+                            ${!addr.isDefault ? `<button onclick="app.setDefaultAddress('${addr.id}')" class="text-xs font-bold text-brand hover:text-gray-500 transition-colors uppercase tracking-widest flex-1 text-left">Set Default</button>` : ""}
+                            <button onclick="app.editAddress('${addr.id}')" class="text-xs font-bold text-gray-500 hover:text-brand transition-colors uppercase tracking-widest">Edit</button>
+                            <button onclick="app.deleteAddress('${addr.id}')" class="text-xs font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-widest">Delete</button>
+                        </div>
+                    </div>
+                `,
+      )
+      .join("");
+  };
+
+  const openAddressForm = (id = null) => {
+    const form = els.addressModal.form;
+    form.reset();
+    if (id && currentUser) {
+      const addr = currentUser.addresses.find((a) => a.id === id);
+      if (addr) {
+        document.getElementById("addr-id").value = addr.id;
+        document.getElementById("addr-title").value = addr.title;
+        document.getElementById("addr-name").value = addr.name;
+        document.getElementById("addr-detail").value = addr.detail;
+        document.getElementById("addr-phone").value = addr.phone;
+        document.getElementById("addr-default").checked = addr.isDefault;
+        els.addressModal.title.innerText = "Edit Address";
+      }
+    } else {
+      document.getElementById("addr-id").value = "";
+      if (
+        currentUser &&
+        (!currentUser.addresses || currentUser.addresses.length === 0)
+      ) {
+        document.getElementById("addr-default").checked = true; // Auto default first address
+      }
+      els.addressModal.title.innerText = "Add New Address";
+    }
+
+    els.addressModal.wrap.classList.remove("hidden");
+    void els.addressModal.wrap.offsetWidth;
+    els.addressModal.bg.classList.remove("opacity-0");
+    els.addressModal.content.classList.remove(
+      "translate-y-full",
+      "sm:translate-y-0",
+      "sm:scale-95",
+    );
+    els.addressModal.content.classList.add("translate-y-0", "sm:scale-100");
+  };
+
+  const closeAddressForm = () => {
+    els.addressModal.bg.classList.add("opacity-0");
+    els.addressModal.content.classList.remove("translate-y-0", "sm:scale-100");
+    els.addressModal.content.classList.add(
+      "translate-y-full",
+      "sm:translate-y-0",
+      "sm:scale-95",
+    );
+    setTimeout(() => {
+      els.addressModal.wrap.classList.add("hidden");
+    }, 300);
+  };
+
+  const saveAddress = (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const idInput = document.getElementById("addr-id").value;
+    const isDefault = document.getElementById("addr-default").checked;
+
+    const newAddr = {
+      id: idInput ? idInput : Date.now().toString(),
+      title: document.getElementById("addr-title").value,
+      name: document.getElementById("addr-name").value,
+      detail: document.getElementById("addr-detail").value,
+      phone: document.getElementById("addr-phone").value,
+      isDefault: isDefault,
+    };
+
+    if (!currentUser.addresses) currentUser.addresses = [];
+
+    if (isDefault) {
+      currentUser.addresses.forEach((a) => (a.isDefault = false));
+    }
+
+    if (idInput) {
+      const idx = currentUser.addresses.findIndex((a) => a.id === idInput);
+      if (idx > -1) currentUser.addresses[idx] = newAddr;
+    } else {
+      if (currentUser.addresses.length === 0) newAddr.isDefault = true;
+      currentUser.addresses.push(newAddr);
+    }
+
+    // Safety: if none default, make first one default
+    if (
+      currentUser.addresses.length > 0 &&
+      !currentUser.addresses.some((a) => a.isDefault)
+    ) {
+      currentUser.addresses[0].isDefault = true;
+    }
+
+    saveCurrentUser();
+    renderAddresses();
+    closeAddressForm();
+
+    populateCheckoutAddress();
+  };
+
+  const deleteAddress = (id) => {
+    if (!confirm("Delete this address?")) return;
+    currentUser.addresses = currentUser.addresses.filter((a) => a.id !== id);
+    if (
+      currentUser.addresses.length > 0 &&
+      !currentUser.addresses.some((a) => a.isDefault)
+    ) {
+      currentUser.addresses[0].isDefault = true;
+    }
+    saveCurrentUser();
+    renderAddresses();
+  };
+
+  const setDefaultAddress = (id) => {
+    currentUser.addresses.forEach((a) => {
+      a.isDefault = a.id === id;
+    });
+    saveCurrentUser();
+    renderAddresses();
+    populateCheckoutAddress();
   };
 
   // --- Wishlist & Recent Features ---
@@ -392,7 +605,6 @@ const app = (() => {
     }
     localStorage.setItem("dropout_wishlist", JSON.stringify(wishlist));
 
-    // Re-render visible lists
     if (!els.views.home.classList.contains("hidden")) renderProducts();
     if (!els.views.wishlist.classList.contains("hidden")) renderWishlist();
     if (!els.views.recent.classList.contains("hidden")) renderRecent();
@@ -400,25 +612,28 @@ const app = (() => {
       performSearch(els.searchInput.value);
   };
 
-  // Product Template Helper
   const getProductCardHTML = (product) => {
     const isWishlisted = wishlist.includes(product.id);
     const heartIcon = isWishlisted
       ? "las la-heart text-red-500"
       : "lar la-heart text-brand";
+    const bgClass = isWishlisted
+      ? "bg-white shadow-sm"
+      : "bg-white/80 backdrop-blur shadow-sm hover:bg-white hover:shadow-md";
 
     return `
-                    <div class="group cursor-pointer active:scale-[0.98] transition-transform duration-200 relative" onclick="app.openProductModal(${product.id})">
-                        <button onclick="app.toggleWishlist(${product.id}, event)" class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full shadow-sm flex items-center justify-center z-20 hover:bg-gray-50 transition-colors">
-                            <i class="${heartIcon} text-lg"></i>
+                    <div class="group cursor-pointer transition-transform duration-300 relative flex flex-col h-full" onclick="app.openProductModal(${product.id})">
+                        <button onclick="app.toggleWishlist(${product.id}, event)" class="absolute top-3 right-3 w-9 h-9 ${bgClass} rounded-full flex items-center justify-center z-20 transition-all active:scale-90">
+                            <i class="${heartIcon} text-xl"></i>
                         </button>
                         <div class="relative w-full aspect-[4/5] bg-brand-light rounded-2xl overflow-hidden mb-3">
                             <img src="${product.images[product.colors[0]]}" alt="${product.name}" class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out">
-                            <button class="absolute bottom-3 right-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-brand opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 sm:flex hidden z-10">
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 hidden md:block"></div>
+                            <button class="absolute bottom-3 right-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-brand opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 sm:flex hidden z-10 active:scale-95">
                                 <i class="las la-plus text-xl"></i>
                             </button>
                         </div>
-                        <div class="px-1">
+                        <div class="px-1 flex flex-col flex-1">
                             <h3 class="text-sm font-bold text-gray-900 truncate">${product.name}</h3>
                             <div class="flex justify-between items-center mt-1">
                                 <p class="text-xs font-semibold text-gray-500">${product.colors.length} Colors</p>
@@ -505,7 +720,37 @@ const app = (() => {
     }
   };
 
-  // --- Category Filter Logic ---
+  // --- Filters & Sorting ---
+  const openFilters = () => {
+    els.filterModal.wrap.classList.remove("hidden");
+    void els.filterModal.wrap.offsetWidth;
+    els.filterModal.bg.classList.remove("opacity-0");
+    els.filterModal.content.classList.remove(
+      "translate-y-full",
+      "sm:translate-y-0",
+      "sm:scale-95",
+    );
+    els.filterModal.content.classList.add("translate-y-0", "sm:scale-100");
+  };
+
+  const closeFilters = () => {
+    els.filterModal.bg.classList.add("opacity-0");
+    els.filterModal.content.classList.remove("translate-y-0", "sm:scale-100");
+    els.filterModal.content.classList.add(
+      "translate-y-full",
+      "sm:translate-y-0",
+      "sm:scale-95",
+    );
+    setTimeout(() => {
+      els.filterModal.wrap.classList.add("hidden");
+    }, 300);
+  };
+
+  const applySort = (val) => {
+    sortOrder = val;
+    renderProducts();
+  };
+
   const setCategory = (category) => {
     currentCategory = category;
 
@@ -536,12 +781,17 @@ const app = (() => {
     renderProducts();
   };
 
-  // --- Products ---
   const renderProducts = () => {
-    const filteredProducts =
+    let filteredProducts =
       currentCategory === "All Drops"
-        ? products
+        ? [...products]
         : products.filter((p) => p.category === currentCategory);
+
+    if (sortOrder === "price_asc") {
+      filteredProducts.sort((a, b) => a.price - b.price);
+    } else if (sortOrder === "price_desc") {
+      filteredProducts.sort((a, b) => b.price - a.price);
+    } // default is original array order
 
     if (filteredProducts.length === 0) {
       els.grid.innerHTML = `
@@ -556,9 +806,8 @@ const app = (() => {
     els.grid.innerHTML = filteredProducts.map(getProductCardHTML).join("");
   };
 
-  // --- Modal Logic ---
+  // --- Product Modal Logic ---
   const openProductModal = (id) => {
-    // Add to recent
     recent = [id, ...recent.filter((r) => r !== id)].slice(0, 10);
     localStorage.setItem("dropout_recent", JSON.stringify(recent));
 
@@ -567,6 +816,7 @@ const app = (() => {
     currentModalQty = 1;
 
     els.modal.img.src = currentActiveProduct.images[currentSelectedColor];
+    els.modal.category.innerText = currentActiveProduct.category;
     els.modal.title.innerText = currentActiveProduct.name;
     els.modal.price.innerText = formatPrice(currentActiveProduct.price);
     els.modal.desc.innerText = currentActiveProduct.desc;
@@ -576,8 +826,10 @@ const app = (() => {
 
     els.modal.addBtn.onclick = () => {
       addToCart(currentActiveProduct, currentSelectedColor, currentModalQty);
-      closeModal();
-      setTimeout(() => toggleCart(true), 350);
+    };
+
+    els.modal.buyBtn.onclick = () => {
+      buyNow(currentActiveProduct, currentSelectedColor, currentModalQty);
     };
 
     els.modal.wrap.classList.remove("hidden");
@@ -597,10 +849,10 @@ const app = (() => {
     els.modal.colors.innerHTML = currentActiveProduct.colors
       .map(
         (color) => `
-                    <button onclick="app.selectColor('${color}')" class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                    <button onclick="app.selectColor('${color}')" class="px-6 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap border-2 ${
                       currentSelectedColor === color
-                        ? "bg-brand text-white shadow-md border-2 border-brand"
-                        : "bg-brand-light text-gray-600 border-2 border-transparent hover:bg-gray-200"
+                        ? "bg-brand text-white shadow-md border-brand"
+                        : "bg-brand-light text-gray-600 border-transparent hover:bg-gray-200"
                     }">${color}</button>
                 `,
       )
@@ -665,12 +917,31 @@ const app = (() => {
     saveCart();
   };
 
+  const buyNow = (product, color, qty) => {
+    directBuyItem = {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[color],
+      color: color,
+      qty: qty,
+    };
+    isDirectCheckout = true;
+    closeModal();
+    proceedToCheckout(true);
+  };
+
   const updateCartQty = (index, change) => {
     if (cart[index].qty + change > 0) {
       cart[index].qty += change;
     } else {
       cart.splice(index, 1);
     }
+    saveCart();
+  };
+
+  const removeCartItem = (index) => {
+    cart.splice(index, 1);
     saveCart();
   };
 
@@ -711,24 +982,35 @@ const app = (() => {
       els.cartItemsList.innerHTML = cart
         .map(
           (item, index) => `
-                        <div class="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-50">
-                            <input type="checkbox" ${item.selected !== false ? "checked" : ""} onchange="app.toggleItemSelection(${index})" class="w-5 h-5 ml-1 text-brand focus:ring-brand border-gray-300 rounded cursor-pointer">
-                            
-                            <div class="w-16 h-20 bg-brand-light rounded-xl overflow-hidden flex-shrink-0">
-                                <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-start mb-1">
-                                    <h4 class="text-sm font-bold text-gray-900 truncate pr-2">${item.name}</h4>
-                                    <p class="text-sm font-black text-brand">${formatPrice(item.price * item.qty)}</p>
+                        <div class="rounded-2xl border border-gray-50 bg-red-500 overflow-hidden relative shadow-sm h-[104px]">
+                            <div class="flex overflow-x-auto hide-scroll snap-x snap-mandatory swipe-container w-full h-full">
+                                <!-- Actual Item -->
+                                <div class="swipe-item w-full h-full flex-shrink-0 flex items-center gap-3 bg-white p-3 relative group">
+                                    <input type="checkbox" ${item.selected !== false ? "checked" : ""} onchange="app.toggleItemSelection(${index})" class="w-5 h-5 ml-1 text-brand focus:ring-brand border-gray-300 rounded cursor-pointer z-10">
+                                    
+                                    <div class="w-16 h-20 bg-brand-light rounded-xl overflow-hidden flex-shrink-0 z-10">
+                                        <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="flex-1 min-w-0 z-10">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <h4 class="text-sm font-bold text-gray-900 truncate pr-2">${item.name}</h4>
+                                            <p class="text-sm font-black text-brand">${formatPrice(item.price * item.qty)}</p>
+                                        </div>
+                                        <p class="text-xs font-semibold text-gray-500 mb-2">${item.color}</p>
+                                        
+                                        <div class="flex items-center bg-brand-light rounded-lg w-24 p-1">
+                                            <button onclick="app.updateCartQty(${index}, -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-black rounded-md active:bg-white"><i class="las la-minus text-xs"></i></button>
+                                            <span class="flex-1 text-center font-bold text-sm">${item.qty}</span>
+                                            <button onclick="app.updateCartQty(${index}, 1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-black rounded-md active:bg-white"><i class="las la-plus text-xs"></i></button>
+                                        </div>
+                                    </div>
+                                    ${item.selected === false ? '<div class="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-0"></div>' : ""}
                                 </div>
-                                <p class="text-xs font-semibold text-gray-500 mb-2">${item.color}</p>
-                                
-                                <div class="flex items-center bg-brand-light rounded-lg w-24 p-1">
-                                    <button onclick="app.updateCartQty(${index}, -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-black rounded-md active:bg-white"><i class="las la-minus text-xs"></i></button>
-                                    <span class="flex-1 text-center font-bold text-sm">${item.qty}</span>
-                                    <button onclick="app.updateCartQty(${index}, 1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-black rounded-md active:bg-white"><i class="las la-plus text-xs"></i></button>
-                                </div>
+
+                                <!-- Delete Action (Revealed on Swipe) -->
+                                <button onclick="app.removeCartItem(${index})" class="swipe-item w-20 flex-shrink-0 flex items-center justify-center text-white bg-red-500 active:bg-red-600 transition-colors h-full">
+                                    <i class="las la-trash-alt text-3xl"></i>
+                                </button>
                             </div>
                         </div>
                     `,
@@ -758,20 +1040,42 @@ const app = (() => {
   };
 
   // --- Checkout Logic ---
+  const populateCheckoutAddress = () => {
+    if (currentUser && currentUser.addresses) {
+      const defaultAddr =
+        currentUser.addresses.find((a) => a.isDefault) ||
+        currentUser.addresses[0];
+      if (defaultAddr) {
+        document.getElementById("checkout-name").value = defaultAddr.name;
+        document.getElementById("checkout-email").value = currentUser.email;
+        document.getElementById("checkout-address").value =
+          defaultAddr.detail + "\n" + defaultAddr.phone;
+      } else {
+        document.getElementById("checkout-name").value = currentUser.name;
+        document.getElementById("checkout-email").value = currentUser.email;
+      }
+    }
+  };
+
   const renderCheckoutSummary = () => {
-    const selectedItems = cart.filter((item) => item.selected !== false);
-    const totalPrice = selectedItems.reduce(
+    const itemsToCheckout = isDirectCheckout
+      ? [directBuyItem]
+      : cart.filter((item) => item.selected !== false);
+    const subTotal = itemsToCheckout.reduce(
       (sum, item) => sum + item.price * item.qty,
       0,
     );
+    const shipping = 150.0;
+    const tax = subTotal * 0.12;
+    const finalTotal = subTotal + shipping + tax;
 
-    els.checkoutItems.innerHTML = selectedItems
+    els.checkoutItems.innerHTML = itemsToCheckout
       .map(
         (item) => `
-                    <div class="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
-                        <img src="${item.image}" class="w-14 h-14 rounded-xl object-cover bg-brand-light">
+                    <div class="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
+                        <img src="${item.image}" class="w-16 h-16 rounded-2xl object-cover bg-brand-light shadow-sm">
                         <div class="flex-1">
-                            <h4 class="text-sm font-bold text-gray-900">${item.name}</h4>
+                            <h4 class="text-sm font-bold text-gray-900 mb-0.5">${item.name}</h4>
                             <p class="text-xs font-semibold text-gray-500">${item.color} <span class="mx-1">•</span> Qty: ${item.qty}</p>
                         </div>
                         <p class="text-sm font-black text-brand">${formatPrice(item.price * item.qty)}</p>
@@ -780,15 +1084,29 @@ const app = (() => {
       )
       .join("");
 
-    els.checkoutTotal.innerText = formatPrice(totalPrice);
+    document.getElementById("checkout-subtotal").innerText =
+      formatPrice(subTotal);
+    document.getElementById("checkout-shipping").innerText =
+      formatPrice(shipping);
+    document.getElementById("checkout-tax").innerText = formatPrice(tax);
+    els.checkoutTotal.innerText = formatPrice(finalTotal);
+
+    populateCheckoutAddress();
   };
 
-  const proceedToCheckout = () => {
-    const selectedItems = cart.filter((item) => item.selected !== false);
-    if (selectedItems.length === 0) return;
+  const proceedToCheckout = (isDirect = false) => {
+    isDirectCheckout = isDirect;
+
+    if (!isDirectCheckout) {
+      const selectedItems = cart.filter((item) => item.selected !== false);
+      if (selectedItems.length === 0) return;
+    }
 
     renderCheckoutSummary();
-    toggleCart();
+    // Close cart if open
+    if (!els.cartDrawer.classList.contains("translate-x-full")) {
+      toggleCart();
+    }
     navigate("checkout");
   };
 
@@ -800,8 +1118,13 @@ const app = (() => {
     btn.disabled = true;
 
     setTimeout(() => {
-      cart = cart.filter((item) => item.selected === false);
-      saveCart();
+      if (!isDirectCheckout) {
+        cart = cart.filter((item) => item.selected === false);
+        saveCart();
+      } else {
+        directBuyItem = null;
+        isDirectCheckout = false;
+      }
 
       e.target.reset();
       btn.innerHTML = originalHTML;
@@ -819,20 +1142,28 @@ const app = (() => {
     handleLogin,
     handleLogout,
     saveAccountDetails,
+    openAddressForm,
+    closeAddressForm,
+    saveAddress,
+    deleteAddress,
+    setDefaultAddress,
     updateSetting,
     toggleWishlist,
     openSearch,
     closeSearch,
     performSearch,
+    openFilters,
+    closeFilters,
+    applySort,
     openProductModal,
     closeModal,
     selectColor,
     updateModalQty,
     toggleCart,
     updateCartQty,
+    removeCartItem,
     toggleItemSelection,
     proceedToCheckout,
     handleCheckout,
   };
 })();
-S;
