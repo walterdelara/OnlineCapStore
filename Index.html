@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dropout | Premium Headwear</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Line Awesome Icons CDN -->
+    <link rel="stylesheet"
+        href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: '#111111',
+                        'brand-light': '#f8f8f8',
+                    },
+                    boxShadow: {
+                        'up': '0 -4px 20px -5px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="Script.js" defer></script>
+
+    <style>
+        /* Custom Scrollbar & Utilities */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Loader Animation */
+        .pulse-logo {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: .5;
+                transform: scale(0.95);
+            }
+        }
+
+        /* Active Nav Indicator */
+        .nav-item.active {
+            color: #111111;
+        }
+
+        .nav-item.active i {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease;
+        }
+
+        /* Mobile Bottom Sheet Grabber */
+        .sheet-grabber::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+        }
+
+        /* Checkbox Styling */
+        input[type="checkbox"] {
+            accent-color: #111111;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-brand font-sans antialiased overflow-x-hidden select-none pb-safe">
+
+    <!-- Splash Screen -->
+    <div id="splash-screen"
+        class="fixed inset-0 z-[100] bg-brand flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out">
+        <h1 class="text-white text-5xl font-black tracking-tighter pulse-logo">DROPOUT.</h1>
+        <p class="text-gray-400 mt-4 text-xs tracking-[0.3em] uppercase font-medium">Premium Headwear</p>
+    </div>
+
+    <!-- Main Application Wrapper -->
+    <div id="app" class="opacity-0 transition-opacity duration-1000 hidden">
+
+        <!-- Standard Sticky Navbar (Hidden on Auth/Settings/Checkout) -->
+        <header id="main-header"
+            class="fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-50 transition-opacity duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
+                <div class="flex-shrink-0 cursor-pointer" onclick="app.navigate('home')">
+                    <h1 class="text-2xl font-black tracking-tighter">DROPOUT.</h1>
+                </div>
+
+                <!-- Desktop Nav / Right Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-6 text-gray-900">
+                    <button onclick="app.openSearch()"
+                        class="p-2 hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                        <i class="las la-search text-2xl"></i>
+                    </button>
+                    <!-- Cart (Hidden on mobile, shown on desktop) -->
+                    <button
+                        class="hidden md:flex relative p-2 hover:bg-gray-50 rounded-full transition-colors active:scale-95"
+                        onclick="app.toggleCart()">
+                        <i class="las la-shopping-bag text-2xl"></i>
+                        <span
+                            class="cart-badge absolute top-1 right-1 bg-brand text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center hidden border-2 border-white box-content">0</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Profile Specific Navbar (Only Setting Icon) -->
+        <header id="profile-header"
+            class="fixed top-0 w-full z-40 bg-white/90 backdrop-blur-md border-b border-gray-50 transition-opacity duration-300 hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-end">
+                <button onclick="app.navigate('settings')"
+                    class="p-2 hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-cog text-[28px] text-brand"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- View: Home / Product Listing -->
+        <main id="view-home" class="pt-16 pb-24 md:pb-16 min-h-screen">
+            <!-- Categories Scroll (Mobile App Feel) -->
+            <div class="w-full bg-white sticky top-14 sm:top-16 z-30 border-b border-gray-50">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div id="category-filters" class="flex space-x-6 overflow-x-auto py-3 hide-scroll">
+                        <button onclick="app.setCategory('All Drops')" data-category="All Drops"
+                            class="category-btn text-sm font-semibold border-b-2 border-brand text-brand whitespace-nowrap pb-1 transition-colors">All
+                            Drops</button>
+                        <button onclick="app.setCategory('Caps')" data-category="Caps"
+                            class="category-btn text-sm font-medium text-gray-400 hover:text-brand whitespace-nowrap pb-1 transition-colors">Caps</button>
+                        <button onclick="app.setCategory('Beanies')" data-category="Beanies"
+                            class="category-btn text-sm font-medium text-gray-400 hover:text-brand whitespace-nowrap pb-1 transition-colors">Beanies</button>
+                        <button onclick="app.setCategory('Buckets')" data-category="Buckets"
+                            class="category-btn text-sm font-medium text-gray-400 hover:text-brand whitespace-nowrap pb-1 transition-colors">Buckets</button>
+                        <button onclick="app.setCategory('Accessories')" data-category="Accessories"
+                            class="category-btn text-sm font-medium text-gray-400 hover:text-brand whitespace-nowrap pb-1 transition-colors">Accessories</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <!-- App-style Hero Section -->
+                <div
+                    class="mb-8 p-6 bg-brand-light rounded-2xl flex items-center justify-between overflow-hidden relative">
+                    <div class="z-10 relative">
+                        <span
+                            class="bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full mb-3 inline-block shadow-sm">New
+                            Arrival</span>
+                        <h2 class="text-3xl font-black tracking-tight text-brand mb-2">The Canvas<br>Collection</h2>
+                        <button class="text-sm font-semibold flex items-center gap-1 group mt-2">
+                            Shop Now <i class="las la-angle-right group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                    <!-- Decorative Graphic -->
+                    <div class="absolute -right-10 -bottom-10 opacity-10">
+                        <i class="las la-asterisk text-[150px]"></i>
+                    </div>
+                </div>
+
+                <!-- Product Grid -->
+                <div class="flex justify-between items-end mb-4">
+                    <h3 class="text-xl font-bold tracking-tight">Trending</h3>
+                    <button class="text-xs font-semibold text-gray-400 flex items-center">Filters <i
+                            class="las la-sliders-h ml-1"></i></button>
+                </div>
+
+                <div id="product-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+                    <!-- Products injected via JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Discover -->
+        <main id="view-discover" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light">
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center justify-center h-[70vh]">
+                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
+                    <i class="las la-compass text-5xl text-brand"></i>
+                </div>
+                <h2 class="text-3xl font-black tracking-tight mb-3">Discover New Drops</h2>
+                <p class="text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">Our latest lookbook and
+                    collaborations are dropping soon. Make sure you're ready.</p>
+                <button onclick="app.navigate('home')"
+                    class="mt-8 bg-brand text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-95 shadow-md">
+                    Back to Shop
+                </button>
+            </div>
+        </main>
+
+        <!-- View: Profile / Auth Splash -->
+        <main id="view-auth" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <!-- Native Top Nav -->
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Account</h2>
+            </div>
+
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center justify-center h-[70vh]">
+                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
+                    <i class="las la-user-circle text-5xl text-brand"></i>
+                </div>
+                <h2 class="text-3xl font-black tracking-tight mb-3">Your Profile</h2>
+                <p class="text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">Sign in to track your past orders,
+                    manage saved addresses, and access exclusive drops.</p>
+                <div class="mt-8 flex flex-col gap-3 w-full max-w-xs mx-auto">
+                    <button onclick="app.navigate('login')"
+                        class="bg-brand text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-md w-full flex justify-center items-center gap-2">
+                        Sign In <i class="las la-angle-right"></i>
+                    </button>
+                    <button onclick="app.navigate('register')"
+                        class="bg-white border-2 border-gray-200 text-brand px-8 py-4 rounded-xl font-bold text-lg hover:border-gray-300 transition-colors w-full">
+                        Create Account
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Login -->
+        <main id="view-login" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <!-- Native Top Nav -->
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('auth')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Sign In</h2>
+            </div>
+
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center mt-6">
+                <div class="bg-white rounded-3xl shadow-sm p-6 md:p-10 mb-8 w-full">
+                    <!-- Polished Greeting -->
+                    <div class="text-center mb-8">
+                        <div
+                            class="w-16 h-16 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                            <i class="las la-fingerprint text-3xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-black">Welcome Back</h2>
+                        <p class="text-sm text-gray-500 font-medium mt-1">Enter your details to proceed.</p>
+                    </div>
+
+                    <p id="login-error"
+                        class="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-lg mb-6 hidden text-center">Invalid
+                        email or password.</p>
+
+                    <form onsubmit="app.handleLogin(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <input type="email" id="login-email" placeholder="Email Address" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <div>
+                                <input type="password" id="login-password" placeholder="Password" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg mt-4">
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Register -->
+        <main id="view-register" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <!-- Native Top Nav -->
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('auth')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Create Account</h2>
+            </div>
+
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center mt-6">
+                <div class="bg-white rounded-3xl shadow-sm p-6 md:p-10 mb-8 w-full">
+                    <!-- Polished Greeting -->
+                    <div class="text-center mb-8">
+                        <div
+                            class="w-16 h-16 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                            <i class="las la-user-plus text-3xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-black">Join Dropout</h2>
+                        <p class="text-sm text-gray-500 font-medium mt-1">Unlock exclusive drops and rewards.</p>
+                    </div>
+
+                    <p id="reg-error"
+                        class="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-lg mb-6 hidden text-center">This
+                        email is already registered.</p>
+
+                    <form onsubmit="app.handleRegister(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <input type="text" id="reg-name" placeholder="Full Name" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <div>
+                                <input type="email" id="reg-email" placeholder="Email Address" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <div>
+                                <input type="password" id="reg-password" placeholder="Create Password" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg mt-4">
+                                Join Dropout
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Profile Dashboard (Logged In) -->
+        <main id="view-profile-dashboard" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-2">
+                <div class="bg-white rounded-3xl shadow-sm p-6 sm:p-8 text-center relative">
+
+                    <!-- Header -->
+                    <div class="flex items-center gap-4 mb-8 text-left">
+                        <div id="profile-initial"
+                            class="w-16 h-16 bg-brand text-white rounded-full flex items-center justify-center text-2xl font-black tracking-tighter shadow-md flex-shrink-0">
+                            ?
+                        </div>
+                        <div>
+                            <h2 id="profile-name" class="text-xl font-black tracking-tight mb-0.5 text-gray-900">User
+                                Name</h2>
+                            <p id="profile-email" class="text-gray-500 font-medium text-xs">user@email.com</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats Group (Coupons, Points, Wallet, Gift Card) -->
+                    <div class="flex justify-between border-y border-gray-100 py-5 mb-8">
+                        <div class="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span class="text-lg font-black text-brand">3</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Coupons</span>
+                        </div>
+                        <div class="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span class="text-lg font-black text-brand">120</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Points</span>
+                        </div>
+                        <div class="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span class="text-lg font-black text-brand">₱450</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Wallet</span>
+                        </div>
+                        <div class="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity">
+                            <span class="text-lg font-black text-brand">1</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Gift
+                                Card</span>
+                        </div>
+                    </div>
+
+                    <!-- My Orders Group -->
+                    <div class="text-left mb-8">
+                        <div class="flex justify-between items-center mb-5">
+                            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-widest">My Orders</h3>
+                            <button
+                                class="text-xs font-semibold text-gray-400 hover:text-brand flex items-center transition-colors">View
+                                All <i class="las la-angle-right ml-1"></i></button>
+                        </div>
+                        <div class="flex justify-between items-start px-1">
+                            <div class="flex flex-col items-center cursor-pointer group">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors relative">
+                                    <i class="las la-wallet text-2xl"></i>
+                                    <span
+                                        class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white box-content">1</span>
+                                </div>
+                                <span class="text-[10px] font-bold text-gray-500">Unpaid</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-box text-2xl"></i>
+                                </div>
+                                <span class="text-[10px] font-bold text-gray-500">Processing</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors relative">
+                                    <i class="las la-truck text-2xl"></i>
+                                    <span
+                                        class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white box-content">2</span>
+                                </div>
+                                <span class="text-[10px] font-bold text-gray-500">Shipped</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-star text-2xl"></i>
+                                </div>
+                                <span class="text-[10px] font-bold text-gray-500">Review</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-undo-alt text-2xl"></i>
+                                </div>
+                                <span class="text-[10px] font-bold text-gray-500">Return</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- More Services Group -->
+                    <div class="text-left mb-8 mt-8 border-t border-gray-100 pt-8">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-widest mb-5">More Services</h3>
+                        <div class="flex justify-between items-start px-1">
+                            <div class="flex flex-col items-center cursor-pointer group w-[18%]">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-headset text-xl"></i>
+                                </div>
+                                <span
+                                    class="text-[9px] font-bold text-gray-500 text-center leading-tight">Customer<br>Service</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group w-[18%]">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-exchange-alt text-xl"></i>
+                                </div>
+                                <span
+                                    class="text-[9px] font-bold text-gray-500 text-center leading-tight">Dropout<br>Exchange</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group w-[18%]">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-users text-xl"></i>
+                                </div>
+                                <span class="text-[9px] font-bold text-gray-500 text-center leading-tight">Affiliate
+                                    &<br>Creator</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group w-[18%]">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-user-plus text-xl"></i>
+                                </div>
+                                <span
+                                    class="text-[9px] font-bold text-gray-500 text-center leading-tight">Following</span>
+                            </div>
+                            <div class="flex flex-col items-center cursor-pointer group w-[18%]">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand mb-2 group-hover:bg-brand group-hover:text-white transition-colors">
+                                    <i class="las la-file-alt text-xl"></i>
+                                </div>
+                                <span class="text-[9px] font-bold text-gray-500 text-center leading-tight">Policy</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wishlist & Recently Viewed Navigation Component -->
+                    <div class="flex overflow-hidden rounded-xl border-2 border-gray-100 mt-4">
+                        <button onclick="app.navigate('wishlist')"
+                            class="flex-1 bg-white py-4 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors border-r-2 border-gray-100 active:bg-gray-100">
+                            <i class="las la-heart text-2xl text-brand mb-1"></i>
+                            <span class="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Wishlist</span>
+                        </button>
+                        <button onclick="app.navigate('recent')"
+                            class="flex-1 bg-white py-4 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors active:bg-gray-100">
+                            <i class="las la-history text-2xl text-brand mb-1"></i>
+                            <span class="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Recent</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Settings (Accessed from Profile Header) -->
+        <main id="view-settings" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <!-- Native Top Nav -->
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('profileDashboard')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Settings</h2>
+            </div>
+
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <!-- Account QR Snippet -->
+                <div
+                    class="bg-white rounded-2xl shadow-sm p-5 mb-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform border border-gray-50">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Account
+                            Info</span>
+                        <span class="text-sm font-black text-gray-900" id="settings-email">user@email.com</span>
+                    </div>
+                    <div class="flex items-center text-gray-400">
+                        <i class="las la-qrcode text-3xl mr-3 text-brand"></i>
+                        <i class="las la-angle-right text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Settings List Group -->
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-8 border border-gray-50">
+                    <!-- Address Book -->
+                    <div onclick="app.navigate('settingsAddress')"
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Address Book</span>
+                        <i class="las la-angle-right text-gray-400"></i>
+                    </div>
+                    <!-- Change Currency -->
+                    <div onclick="app.navigate('settingsCurrency')"
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Change Currency</span>
+                        <div class="flex items-center">
+                            <span id="display-currency"
+                                class="text-[11px] font-bold text-brand bg-brand-light px-2 py-1 rounded-md mr-2">PHP
+                                (₱)</span>
+                            <i class="las la-angle-right text-gray-400"></i>
+                        </div>
+                    </div>
+                    <!-- Change Language -->
+                    <div onclick="app.navigate('settingsLanguage')"
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Change Language</span>
+                        <div class="flex items-center">
+                            <span id="display-language"
+                                class="text-[11px] font-bold text-brand bg-brand-light px-2 py-1 rounded-md mr-2">English</span>
+                            <i class="las la-angle-right text-gray-400"></i>
+                        </div>
+                    </div>
+                    <!-- Payment Options -->
+                    <div
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">My Payment Options</span>
+                        <i class="las la-angle-right text-gray-400"></i>
+                    </div>
+                    <!-- Manage Account -->
+                    <div onclick="app.navigate('settingsAccount')"
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Manage My Account</span>
+                        <i class="las la-angle-right text-gray-400"></i>
+                    </div>
+                    <!-- Contact Preference -->
+                    <div
+                        class="flex items-center justify-between p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Contact Preference</span>
+                        <i class="las la-angle-right text-gray-400"></i>
+                    </div>
+                    <!-- Accessibility -->
+                    <div
+                        class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                        <span class="text-sm font-bold text-gray-800">Accessibility</span>
+                        <i class="las la-angle-right text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Sign Out Button -->
+                <button onclick="app.handleLogout()"
+                    class="w-full bg-white border-2 border-red-100 text-red-500 py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-red-50 transition-colors active:scale-[0.98] shadow-sm">
+                    Sign Out
+                </button>
+            </div>
+        </main>
+
+        <!-- View: Checkout -->
+        <main id="view-checkout" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <!-- Native Top Nav -->
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('home')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Checkout</h2>
+            </div>
+
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <!-- Order Summary -->
+                <div class="bg-white rounded-3xl shadow-sm p-6 md:p-10 mb-6">
+                    <h2 class="text-xl font-black mb-5">Order Summary</h2>
+                    <div id="checkout-items" class="space-y-4 max-h-64 overflow-y-auto hide-scroll pr-2">
+                        <!-- Checked items injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <div class="bg-white rounded-3xl shadow-sm p-6 md:p-10 mb-8">
+                    <form id="checkout-form" onsubmit="app.handleCheckout(event)">
+                        <div class="space-y-5">
+                            <h2 class="text-xl font-black mb-3">Shipping Info</h2>
+                            <div>
+                                <input type="text" placeholder="Full Name" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <div>
+                                <input type="email" placeholder="Email Address" required
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400">
+                            </div>
+                            <div>
+                                <textarea required rows="3" placeholder="Shipping Address"
+                                    class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium placeholder-gray-400 resize-none"></textarea>
+                            </div>
+
+                            <div class="pt-4">
+                                <h3 class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wider">Payment Method
+                                </h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="relative block cursor-pointer">
+                                        <input type="radio" name="payment" value="cod" checked class="peer sr-only">
+                                        <div
+                                            class="flex flex-col p-4 border-2 border-gray-100 rounded-xl bg-gray-50 peer-checked:border-brand peer-checked:bg-white transition-all h-full">
+                                            <i
+                                                class="las la-truck text-2xl mb-2 text-gray-400 peer-checked:text-brand"></i>
+                                            <span
+                                                class="font-bold text-sm text-gray-500 peer-checked:text-brand">Delivery</span>
+                                            <i
+                                                class="las la-check-circle absolute top-4 right-4 text-brand opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                        </div>
+                                    </label>
+                                    <label class="relative block cursor-pointer">
+                                        <input type="radio" name="payment" value="card" class="peer sr-only">
+                                        <div
+                                            class="flex flex-col p-4 border-2 border-gray-100 rounded-xl bg-gray-50 peer-checked:border-brand peer-checked:bg-white transition-all h-full">
+                                            <i
+                                                class="las la-credit-card text-2xl mb-2 text-gray-400 peer-checked:text-brand"></i>
+                                            <span
+                                                class="font-bold text-sm text-gray-500 peer-checked:text-brand">Card</span>
+                                            <i
+                                                class="las la-check-circle absolute top-4 right-4 text-brand opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-gray-100">
+                            <div class="flex justify-between text-xl font-black mb-6">
+                                <span>Total to Pay</span>
+                                <span id="checkout-total">₱0.00</span>
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg flex justify-center items-center gap-2">
+                                Place Order <i class="las la-angle-right text-xl"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Confirmation -->
+        <main id="view-confirmation"
+            class="pt-32 pb-24 min-h-screen hidden flex flex-col items-center justify-center text-center px-6">
+            <div
+                class="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                <i class="las la-check-circle text-6xl"></i>
+            </div>
+            <h2 class="text-3xl font-black mb-3">Got it!</h2>
+            <p class="text-gray-500 mb-10 max-w-sm mx-auto font-medium leading-relaxed">Your order is locked in. We've
+                dropped the tracking details in your email.</p>
+            <button onclick="app.navigate('home')"
+                class="bg-brand text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-[0.98] w-full max-w-xs shadow-lg">
+                Keep Shopping
+            </button>
+        </main>
+
+        <!-- View: Wishlist -->
+        <main id="view-wishlist" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('profileDashboard')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Wishlist</h2>
+            </div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div id="wishlist-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+                    <!-- Wishlist items injected via JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Recently Viewed -->
+        <main id="view-recent" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('profileDashboard')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Recently Viewed</h2>
+            </div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div id="recent-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+                    <!-- Recent items injected via JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Settings - Account -->
+        <main id="view-settings-account" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('settings')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Manage Account</h2>
+            </div>
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="bg-white rounded-3xl shadow-sm p-6 mb-8">
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 mb-1 block">Full
+                                Name</label>
+                            <input type="text" id="acct-name"
+                                class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium">
+                        </div>
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 mb-1 block">Email</label>
+                            <input type="email" id="acct-email" disabled
+                                class="w-full px-5 py-4 bg-gray-100 text-gray-500 rounded-xl border-2 border-transparent font-medium cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 mb-1 block">Phone
+                                Number</label>
+                            <input type="tel" id="acct-phone" placeholder="+63 900 000 0000"
+                                class="w-full px-5 py-4 bg-brand-light rounded-xl border-2 border-transparent focus:bg-white focus:border-brand outline-none transition-all font-medium">
+                        </div>
+                        <button onclick="app.saveAccountDetails()"
+                            class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg mt-4">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Settings - Address Book -->
+        <main id="view-settings-address" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('settings')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Address Book</h2>
+            </div>
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm p-5 border border-brand relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 bg-brand text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                        DEFAULT</div>
+                    <h3 class="font-black text-gray-900 mb-1 text-lg">Home</h3>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Juan Dela Cruz</p>
+                    <p class="text-xs font-medium text-gray-500 leading-relaxed max-w-[80%]">123 Manila Avenue, Brgy.
+                        San Lorenzo, Makati City, Metro Manila, 1223</p>
+                    <p class="text-xs font-medium text-gray-500 mt-1">+63 912 345 6789</p>
+                    <div class="mt-4 flex gap-4 border-t border-gray-50 pt-3">
+                        <button
+                            class="text-xs font-bold text-brand hover:text-gray-500 transition-colors uppercase tracking-widest">Edit</button>
+                        <button
+                            class="text-xs font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-widest">Delete</button>
+                    </div>
+                </div>
+                <button
+                    class="w-full border-2 border-dashed border-gray-300 text-gray-500 py-4 rounded-2xl font-bold text-sm hover:border-brand hover:text-brand transition-colors flex items-center justify-center gap-2">
+                    <i class="las la-plus text-lg"></i> Add New Address
+                </button>
+            </div>
+        </main>
+
+        <!-- View: Settings - Currency -->
+        <main id="view-settings-currency" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('settings')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Currency</h2>
+            </div>
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">PHP (₱) - Philippine Peso</span>
+                        <input type="radio" name="setting_currency" value="PHP (₱)" checked
+                            onchange="app.updateSetting('currency', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">USD ($) - US Dollar</span>
+                        <input type="radio" name="setting_currency" value="USD ($)"
+                            onchange="app.updateSetting('currency', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">EUR (€) - Euro</span>
+                        <input type="radio" name="setting_currency" value="EUR (€)"
+                            onchange="app.updateSetting('currency', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                </div>
+            </div>
+        </main>
+
+        <!-- View: Settings - Language -->
+        <main id="view-settings-language" class="pt-20 pb-28 md:pb-16 min-h-screen hidden bg-brand-light relative">
+            <div
+                class="fixed top-0 left-0 w-full h-14 sm:h-16 flex items-center justify-center bg-white/90 backdrop-blur-md border-b border-gray-50 z-40 px-4 shadow-sm">
+                <button onclick="app.navigate('settings')"
+                    class="absolute left-2 p-2 text-brand hover:bg-gray-50 rounded-full transition-colors active:scale-95">
+                    <i class="las la-angle-left text-2xl"></i>
+                </button>
+                <h2 class="text-[15px] font-black tracking-widest uppercase">Language</h2>
+            </div>
+            <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">English</span>
+                        <input type="radio" name="setting_language" value="English" checked
+                            onchange="app.updateSetting('language', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">Tagalog</span>
+                        <input type="radio" name="setting_language" value="Tagalog"
+                            onchange="app.updateSetting('language', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                    <label
+                        class="flex items-center justify-between p-5 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <span class="text-sm font-bold text-gray-900">Español</span>
+                        <input type="radio" name="setting_language" value="Español"
+                            onchange="app.updateSetting('language', this.value)"
+                            class="w-5 h-5 text-brand focus:ring-brand border-gray-300">
+                    </label>
+                </div>
+            </div>
+        </main>
+
+        <!-- Desktop Footer (Hidden on Mobile) -->
+        <footer class="hidden md:block bg-white border-t border-gray-100 py-10 text-center">
+            <p class="text-gray-400 font-medium text-sm">© 2026 DROPOUT. All rights reserved.</p>
+        </footer>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav
+            class="md:hidden fixed bottom-0 w-full z-40 bg-white/90 backdrop-blur-lg border-t border-gray-100 pb-safe shadow-up">
+            <div class="flex justify-around items-center h-[68px]">
+                <button onclick="app.navigate('home')" data-nav="home"
+                    class="nav-item active flex flex-col items-center justify-center w-full h-full text-brand hover:text-brand transition-colors">
+                    <i class="las la-home text-[26px]"></i>
+                    <span class="text-[10px] font-bold mt-1">Home</span>
+                </button>
+                <button onclick="app.navigate('discover')" data-nav="discover"
+                    class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-brand transition-colors">
+                    <i class="las la-compass text-[26px]"></i>
+                    <span class="text-[10px] font-bold mt-1">Discover</span>
+                </button>
+                <button onclick="app.toggleCart()"
+                    class="nav-item relative flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-brand transition-colors">
+                    <i class="las la-shopping-bag text-[26px]"></i>
+                    <span class="text-[10px] font-bold mt-1">Cart</span>
+                    <span
+                        class="cart-badge absolute top-1 right-[25%] bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center hidden border-2 border-white box-content">0</span>
+                </button>
+                <button onclick="app.navigate('profile')" data-nav="profile"
+                    class="nav-item flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-brand transition-colors">
+                    <i class="las la-user text-[26px]"></i>
+                    <span class="text-[10px] font-bold mt-1">Profile</span>
+                </button>
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- Search Overlay -->
+    <div id="search-overlay"
+        class="fixed inset-0 z-[80] bg-white hidden flex-col transition-transform duration-300 translate-y-full">
+        <div class="px-4 h-14 sm:h-16 flex items-center border-b border-gray-50 bg-white/90 backdrop-blur-md pt-safe">
+            <i class="las la-search text-2xl text-gray-400 mr-3"></i>
+            <input type="text" id="search-input" oninput="app.performSearch(this.value)"
+                placeholder="Search collections, drops..."
+                class="flex-1 h-full outline-none text-lg font-medium text-brand bg-transparent">
+            <button onclick="app.closeSearch()"
+                class="ml-3 text-sm font-bold text-gray-500 hover:text-brand uppercase tracking-widest">Cancel</button>
+        </div>
+        <div class="flex-1 overflow-y-auto bg-brand-light p-4 hide-scroll">
+            <div id="search-results" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 max-w-7xl mx-auto">
+                <!-- Search Results injected via JS -->
+            </div>
+            <div id="search-empty" class="hidden text-center mt-20 flex flex-col items-center">
+                <i class="las la-search text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 font-medium text-lg">No drops found.</p>
+                <p class="text-gray-400 text-sm mt-1">Try searching for "Cap" or "Beanie".</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals & Overlays -->
+
+    <!-- Product Detail Modal (Bottom Sheet on Mobile) -->
+    <div id="product-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-brand/60 backdrop-blur-sm transition-opacity opacity-0" id="modal-bg"
+            onclick="app.closeModal()"></div>
+
+        <!-- Native-feeling Bottom Sheet for mobile, Centered Modal for desktop -->
+        <div class="absolute bottom-0 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:w-[850px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-[80vh] transition-transform transform translate-y-full sm:scale-95 duration-300 ease-out z-10 sheet-grabber sm:sheet-grabber-none"
+            id="modal-content">
+
+            <button onclick="app.closeModal()"
+                class="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur rounded-full text-brand shadow-sm hover:bg-gray-100 transition-colors hidden sm:flex items-center justify-center active:scale-95">
+                <i class="las la-times text-xl"></i>
+            </button>
+
+            <!-- Image Half -->
+            <div
+                class="w-full sm:w-1/2 h-72 sm:h-auto bg-brand-light relative mt-5 sm:mt-0 rounded-t-3xl sm:rounded-none overflow-hidden">
+                <img id="modal-img" src="" alt="Product"
+                    class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200">
+            </div>
+
+            <!-- Details Half -->
+            <div
+                class="w-full sm:w-1/2 p-6 sm:p-10 overflow-y-auto hide-scroll flex flex-col relative bg-white pb-safe">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 id="modal-title" class="text-2xl font-black tracking-tight text-gray-900 leading-tight"></h3>
+                </div>
+                <p id="modal-price" class="text-xl font-bold text-gray-900 mb-4"></p>
+                <p id="modal-desc" class="text-gray-500 mb-8 text-sm font-medium leading-relaxed"></p>
+
+                <!-- Variants -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-bold text-gray-900 uppercase tracking-widest">Select Color</h4>
+                        <span id="color-label" class="text-xs font-semibold text-gray-500"></span>
+                    </div>
+                    <div id="modal-colors" class="flex space-x-3 overflow-x-auto hide-scroll py-1">
+                        <!-- Colors injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Quantity -->
+                <div class="mb-8">
+                    <h4 class="text-xs font-bold text-gray-900 mb-3 uppercase tracking-widest">Quantity</h4>
+                    <div class="flex items-center bg-brand-light rounded-xl w-32 p-1">
+                        <button onclick="app.updateModalQty(-1)"
+                            class="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black rounded-lg transition-colors active:bg-white active:shadow-sm"><i
+                                class="las la-minus"></i></button>
+                        <span id="modal-qty" class="flex-1 text-center font-bold text-base">1</span>
+                        <button onclick="app.updateModalQty(1)"
+                            class="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black rounded-lg transition-colors active:bg-white active:shadow-sm"><i
+                                class="las la-plus"></i></button>
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <div class="mt-auto pt-4 pb-4 sm:pb-0">
+                    <button id="modal-add-btn"
+                        class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg flex justify-center items-center gap-2">
+                        <i class="las la-shopping-bag text-xl"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide-in Cart Drawer (Right side) -->
+    <div id="cart-overlay" class="fixed inset-0 z-[60] bg-brand/60 backdrop-blur-sm transition-opacity hidden opacity-0"
+        onclick="app.toggleCart()"></div>
+    <div id="cart-drawer"
+        class="fixed top-0 right-0 z-[60] h-full w-full sm:w-[400px] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+
+        <!-- Cart Header -->
+        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white mt-safe">
+            <h2 class="text-2xl font-black tracking-tight">Cart</h2>
+            <button onclick="app.toggleCart()"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-brand-light hover:bg-gray-200 transition-colors text-brand active:scale-95">
+                <i class="las la-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Cart Items -->
+        <div id="cart-items" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 hide-scroll bg-brand-light/50">
+            <!-- Items injected via JS -->
+        </div>
+
+        <!-- Cart Footer -->
+        <div id="cart-footer"
+            class="border-t border-gray-100 p-6 bg-white hidden pb-safe z-10 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
+            <div class="flex justify-between items-center mb-6">
+                <p class="text-sm font-bold text-gray-500 uppercase tracking-widest">Subtotal</p>
+                <p id="cart-subtotal" class="text-2xl font-black text-brand">₱0.00</p>
+            </div>
+            <button onclick="app.proceedToCheckout()"
+                class="w-full bg-brand text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-lg flex justify-center items-center gap-2">
+                Checkout (<span id="cart-selected-count">0</span>) <i class="las la-angle-right text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="cart-empty" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-24 h-24 bg-brand-light rounded-full flex items-center justify-center mb-6">
+                <i class="las la-shopping-basket text-5xl text-gray-300"></i>
+            </div>
+            <p class="text-xl font-black text-gray-900 mb-2">Cart is empty</p>
+            <p class="text-gray-500 text-sm font-medium mb-8">Ready to upgrade your headwear?</p>
+            <button onclick="app.toggleCart()"
+                class="bg-brand text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-95 shadow-md">
+                Start Shopping
+            </button>
+        </div>
+    </div>
+
+
+</body>
+
+</html>
